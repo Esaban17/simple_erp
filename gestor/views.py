@@ -1,6 +1,8 @@
 #views.py
 import json
+import sys
 import subprocess
+from pathlib import Path
 from django.shortcuts import render
 from django.shortcuts import redirect
 from django.shortcuts import get_object_or_404
@@ -575,9 +577,12 @@ def lanzar_factura(request):
         Facturas_lineas.objects.filter(num_factura=num_factura)
         ))
     facturas_lineas = json.dumps(facturas_lineas_json)
+    # sys.executable usa el mismo intérprete que corre Django — resuelve PAIN_LOG #16
+    # Path(__file__).parent apunta al directorio gestor/ — resuelve PAIN_LOG #10
+    script_path = str(Path(__file__).parent / "lanzar_factura.py")
     subprocess.check_call([
-        "python3",
-        "/home/ubuntu/gestor/gestor/lanzar_factura.py",
+        sys.executable,
+        script_path,
         datos,
         productos,
         facturas_lineas,
@@ -605,9 +610,10 @@ def lanzar_albaran(request):
         ))
     albaranes_lineas = json.dumps(albaranes_lineas_json)
     try:
+        script_path = str(Path(__file__).parent / "lanzar_albaran.py")
         salida = subprocess.check_call([
-            "python3",
-            "/home/ubuntu/gestor/gestor/lanzar_albaran.py",
+            sys.executable,
+            script_path,
             datos,
             productos,
             albaranes_lineas,

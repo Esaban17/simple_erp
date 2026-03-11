@@ -7,11 +7,20 @@ import os
 import sys
 import json
 import smtplib
+from pathlib import Path
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 from openpyxl import load_workbook
+from dotenv import load_dotenv
+
+# Carga variables de entorno desde .env — resuelve PAIN_LOG #6, #12, #13
+load_dotenv()
+
+# Directorio raíz del proyecto (dos niveles arriba de gestor/)
+# Resuelve PAIN_LOG #10 — elimina rutas hardcodeadas /home/ubuntu/
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 __author__ = "Dario Fervenza"
 __copyright__ = "Copyright 2023 Dario Fervenza"
@@ -61,11 +70,13 @@ class CrearFactura:
         self.iva = valores["iva"]
         self.dias_transferencia = valores["dias_transferencia"]
         self.fecha_limite_transferencia = valores["fecha_limite_transferencia"]
-        self.nueva_ruta = r"/home/ubuntu/gestor/facturas/factura " \
-                        + str(self.cliente) \
-                        + " - " + \
-                        str(self.fecha_factura) \
-                        + ".xlsx"
+        # Usa variable de entorno o calcula desde PROJECT_ROOT — resuelve PAIN_LOG #10, #11, #12
+        facturas_dir = os.environ.get('FACTURAS_DIR', str(PROJECT_ROOT / 'facturas'))
+        os.makedirs(facturas_dir, exist_ok=True)
+        self.nueva_ruta = os.path.join(
+            facturas_dir,
+            f"factura {self.cliente} - {self.fecha_factura}.xlsx"
+        )
         os.rename(self.ruta, self.nueva_ruta)
         self.wb = load_workbook(self.nueva_ruta)
     def gen_descript_prductos(self):
@@ -173,8 +184,14 @@ class CrearFactura:
         server.sendmail(sender_email, receiver_email, msg.as_string())
         server.quit()
 if __name__=="__main__":
-    RUTA_ORIGINAL = r"/home/ubuntu/gestor/23AKP08PL_PLANTILLA.xlsx"
-    RUTA = r"/home/ubuntu/gestor/albaranes/albaran_prov.xlsx"
+    # Resuelve PAIN_LOG #10, #12: rutas dinámicas desde PROJECT_ROOT o .env
+    RUTA_ORIGINAL = os.environ.get(
+        'PLANTILLA_FACTURAS',
+        str(PROJECT_ROOT / '23AKP08PL_PLANTILLA.xlsx')
+    )
+    facturas_dir = os.environ.get('FACTURAS_DIR', str(PROJECT_ROOT / 'facturas'))
+    os.makedirs(facturas_dir, exist_ok=True)
+    RUTA = os.path.join(facturas_dir, 'factura_prov.xlsx')
     shutil.copy(RUTA_ORIGINAL, RUTA)
     objeto = CrearFactura(RUTA)
     objeto.gen_descript_prductos()

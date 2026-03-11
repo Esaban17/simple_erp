@@ -1,0 +1,50 @@
+# Resuelve PAIN_LOG: #3 (PostgreSQL no documentado), #4 (cabeceras SO),
+# #2 (versión Python), #10/#11/#12 (rutas hardcodeadas), #16 (python3 vs python)
+
+services:
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-tienda}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    ports:
+      - "5433:5432"  # 5432 ya ocupado por PostgreSQL local; acceso externo vía :5433
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-tienda}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    # Crea las tablas ANTES de levantar el servidor
+    # makemigrations tienda resuelve #15 (carpeta migrations inexistente)
+    command: >
+      sh -c "python manage.py makemigrations tienda &&
+             python manage.py migrate &&
+             python manage.py create_default_superuser &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+      # Monta los directorios de salida como volúmenes — resuelve #11
+      - ./facturas:/app/facturas
+      - ./albaranes:/app/albaranes
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # IMPORTANTE: dentro de Docker el host de la BD es el nombre del servicio,
+      # NO 127.0.0.1. Este override reemplaza el valor del .env.
+      # (Este fue el error #1 del primer borrador de IA — ver GOLDEN_PATH.md)
+      DB_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

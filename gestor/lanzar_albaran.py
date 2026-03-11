@@ -7,11 +7,19 @@ import os
 import sys
 import json
 import smtplib
+from pathlib import Path
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 from openpyxl import load_workbook
+from dotenv import load_dotenv
+
+# Carga variables de entorno desde .env — resuelve PAIN_LOG #6, #12, #13
+load_dotenv()
+
+# Directorio raíz del proyecto — resuelve PAIN_LOG #10
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 __author__ = "Dario Fervenza"
 __copyright__ = "Copyright 2023 Dario Fervenza"
@@ -59,11 +67,13 @@ class CrearAlbaran:
         self.incoterms = valores["incoterms"]
         self.bultos = valores["bultos"]
         self.medidas = valores["medidas"]
-        self.nueva_ruta = r"/home/ubuntu/gestor/albaranes/albaran " \
-                        + str(self.cliente) \
-                        + " - " \
-                        + str(self.fecha_albaran) \
-                        + ".xlsx"
+        # Usa variable de entorno o calcula desde PROJECT_ROOT — resuelve PAIN_LOG #10, #11, #12
+        albaranes_dir = os.environ.get('ALBARANES_DIR', str(PROJECT_ROOT / 'albaranes'))
+        os.makedirs(albaranes_dir, exist_ok=True)
+        self.nueva_ruta = os.path.join(
+            albaranes_dir,
+            f"albaran {self.cliente} - {self.fecha_albaran}.xlsx"
+        )
         os.rename(self.ruta, self.nueva_ruta)
         self.wb=load_workbook(self.nueva_ruta)
     def gen_descript_prductos(self):
@@ -176,8 +186,14 @@ class CrearAlbaran:
 
 
 if __name__ == "__main__":
-    RUTA_ORIGINAL = r"/home/ubuntu/gestor/23AKP08PL_PLANTILLA.xlsx"
-    RUTA = r"/home/ubuntu/gestor/albaranes/albaran_prov.xlsx"
+    # Resuelve PAIN_LOG #10, #12: rutas dinámicas desde PROJECT_ROOT o .env
+    RUTA_ORIGINAL = os.environ.get(
+        'PLANTILLA_ALBARANES',
+        str(PROJECT_ROOT / '23AKP08_PLANTILLA.xlsx')
+    )
+    albaranes_dir = os.environ.get('ALBARANES_DIR', str(PROJECT_ROOT / 'albaranes'))
+    os.makedirs(albaranes_dir, exist_ok=True)
+    RUTA = os.path.join(albaranes_dir, 'albaran_prov.xlsx')
     shutil.copy(RUTA_ORIGINAL, RUTA)
     objeto = CrearAlbaran(RUTA)
     objeto.gen_descript_prductos()
