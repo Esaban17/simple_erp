@@ -10,29 +10,7 @@
 
 Arranque desde cero (volúmenes eliminados, simulando `git clone` limpio):
 
-```
-$ docker compose down -v          # estado limpio
-$ docker compose up --build       # único comando del Golden Path
-
-=== INICIO: 19:37:02 ===
-
-[1/7] FROM python:3.11-slim       ✓ CACHED
-[3/7] apt-get install libpq-dev   ✓ CACHED  (primera vez: ~45s)
-[5/7] pip install requirements    ✓ CACHED  (primera vez: ~28s)
-[6/7] COPY . .                    ✓ done 0.1s
-[7/7] mkdir -p facturas albaranes ✓ done 1.3s
-
-Container simple_erp-db-1   Starting → Healthy
-Container simple_erp-web-1  Starting → Started
-
-web-1 | makemigrations tienda         ... OK (17 operaciones)
-web-1 | migrate                       ... tienda.0001_initial OK
-web-1 | Superusuario creado: usuario="admin" contraseña="admin"
-web-1 | Watching for file changes with StatReloader
-
-=== TIEMPO TOTAL: 16 segundos (con cache Docker) ===
-=== PRIMERA VEZ (sin cache): ~2 minutos 30 segundos ===
-```
+![Terminal mostrando docker compose up exitoso](image.png)
 
 **Acceso verificado:** http://localhost:8000 → login funcional
 **Credenciales:** `admin` / `admin`
